@@ -1,0 +1,80 @@
+@import "tailwindcss";
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--foreground);
+  --color-panel: var(--panel);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-pink: var(--pink);
+  --color-yellow: var(--yellow);
+  --color-success: var(--success);
+  --color-warning: var(--warning);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-destructive: var(--destructive);
+  --font-mono: var(--font-ibm-plex-mono), ui-monospace, monospace;
+  --radius-sm: 4px;
+  --radius-md: 6px;
+  --radius-lg: 10px;
+}
+
+/* AWS Student Builder Group brand: deep navy, electric pink + yellow, mono. */
+:root {
+  --background: #1a2433;        /* deep squid-ink navy */
+  --panel: #243043;
+  --card: #212c3d;
+  --foreground: #eef2f7;
+  --muted: #2c3a4f;
+  --muted-foreground: #93a6bd;
+  --primary: #ff5cc8;           /* electric brand pink */
+  --primary-foreground: #14202e;
+  --pink: #ff5cc8;
+  --yellow: #ffd633;
+  --success: #54d6a0;
+  --warning: #ffd633;
+  --destructive: #ff6f7d;
+  --border: #33445c;
+  --input: #2a3850;
+  --ring: #ff5cc8;
+  --radius: 6px;
+}
+
+/* Critical base styles kept UNLAYERED so they always win over a stale cache
+   and don't depend on @layer ordering. */
+html {
+  font-family: var(--font-ibm-plex-mono), ui-monospace, monospace;
+  background-color: #1a2433;
+}
+body {
+  background-color: var(--background);
+  color: var(--foreground);
+  -webkit-font-smoothing: antialiased;
+}
+h1, h2, h3 {
+  letter-spacing: -0.01em;
+}
+/* product photos: never distort — contain on a light tile */
+img.item-img {
+  object-fit: contain !important;
+  background: #ffffff;
+}
+
+@layer base {
+  * {
+    border-color: var(--border);
+  }
+  button:not(:disabled),
+  [role="button"]:not(:disabled) {
+    cursor: pointer;
+  }
+  ::placeholder {
+    color: var(--muted-foreground);
+    opacity: 0.7;
+  }
+}

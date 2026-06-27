@@ -13,7 +13,10 @@ export default async function NewOrderPage() {
   return (
     <div className="space-y-4">
       <h1 className="text-xl font-semibold">New order</h1>
-      <OrderForm items={(items ?? []) as ItemLite[]} />
+      <p className="text-sm text-muted-foreground">
+        Save a draft while you build the order, then create the final order when ready to submit.
+      </p>
+      <OrderForm items={(items ?? []) as ItemLite[]} mode="new" />
     </div>
   );
 }

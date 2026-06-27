@@ -53,16 +53,25 @@ export default async function OrdersPage() {
             {list.map((o) => {
               const u = used[o.id] ?? 0;
               const over = u > o.points_budget;
+              const href = o.status === "draft" ? `/orders/${o.id}/edit` : `/orders/${o.id}`;
               return (
                 <tr key={o.id} className="border-b last:border-0">
                   <td className="py-2">
-                    <Link href={`/orders/${o.id}`} className="font-medium underline-offset-2 hover:underline">
+                    <Link href={href} className="font-medium underline-offset-2 hover:underline">
                       {o.title}
                     </Link>
                   </td>
                   <td className="py-2">
-                    <span className={o.status === "received" ? "text-[var(--success)]" : "text-muted-foreground"}>
-                      {o.status === "received" ? "Received" : "Open"}
+                    <span
+                      className={
+                        o.status === "received"
+                          ? "text-[var(--success)]"
+                          : o.status === "draft"
+                            ? "text-yellow"
+                            : "text-muted-foreground"
+                      }
+                    >
+                      {o.status === "received" ? "Received" : o.status === "draft" ? "Draft" : "Open"}
                     </span>
                   </td>
                   <td className={`py-2 text-right ${over ? "text-destructive font-semibold" : ""}`}>

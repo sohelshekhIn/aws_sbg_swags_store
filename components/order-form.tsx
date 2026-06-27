@@ -3,16 +3,26 @@
 import { useState, useTransition } from "react";
 import { Button, Input, Label, Card } from "@/components/ui";
 import { ItemPicker, type PickerItem, type PickerLine } from "@/components/item-picker";
-import { createOrder } from "@/app/(app)/orders/actions";
+import { finalizeOrder, saveOrderDraft, updateOrder } from "@/app/(app)/orders/actions";
 
 export type ItemLite = PickerItem;
 
-export function OrderForm({ items }: { items: PickerItem[] }) {
-  const [title, setTitle] = useState("");
-  const [budget, setBudget] = useState(0);
-  const [grantedOn, setGrantedOn] = useState("");
-  const [note, setNote] = useState("");
-  const [lines, setLines] = useState<PickerLine[]>([]);
+export function OrderForm({
+  items,
+  orderId,
+  mode = "new",
+  initial,
+}: {
+  items: PickerItem[];
+  orderId?: string;
+  mode?: "new" | "draft" | "open";
+  initial?: { title: string; budget: number; grantedOn: string; note: string; lines: PickerLine[] };
+}) {
+  const [title, setTitle] = useState(initial?.title ?? "");
+  const [budget, setBudget] = useState(initial?.budget ?? 0);
+  const [grantedOn, setGrantedOn] = useState(initial?.grantedOn ?? "");
+  const [note, setNote] = useState(initial?.note ?? "");
+  const [lines, setLines] = useState<PickerLine[]>(initial?.lines ?? []);
   const [pending, startTransition] = useTransition();
 
   const itemById = (id: string) => items.find((i) => i.id === id);
@@ -26,29 +36,47 @@ export function OrderForm({ items }: { items: PickerItem[] }) {
       })
     : null;
 
-  function submit(e: React.FormEvent) {
-    e.preventDefault();
-    if (!title.trim() || lines.length === 0) return;
-    startTransition(() =>
-      createOrder({
-        title: title.trim(),
-        points_budget: budget,
-        points_granted_on: grantedOn || null,
-        note: note || null,
-        lines: lines.map((l) => {
-          const it = itemById(l.item_id);
-          return { item_id: l.item_id, size: it?.has_sizes ? l.size || null : null, qty: l.qty };
-        }),
-      })
-    );
+  function payload() {
+    return {
+      title: title.trim(),
+      points_budget: budget,
+      points_granted_on: grantedOn || null,
+      note: note || null,
+      lines: lines.map((l) => {
+        const it = itemById(l.item_id);
+        return { item_id: l.item_id, size: it?.has_sizes ? l.size || null : null, qty: l.qty };
+      }),
+    };
   }
 
+  function saveDraft() {
+    startTransition(() => saveOrderDraft(orderId ?? null, payload()));
+  }
+
+  function finalize() {
+    if (!title.trim() || lines.length === 0) return;
+    startTransition(() => finalizeOrder(orderId ?? null, payload()));
+  }
+
+  function saveOpen(e: React.FormEvent) {
+    e.preventDefault();
+    if (!title.trim() || lines.length === 0 || !orderId) return;
+    startTransition(() => updateOrder(orderId, payload()));
+  }
+
+  const canFinalize = Boolean(title.trim() && lines.length > 0);
+
   return (
-    <form onSubmit={submit} className="space-y-4">
+    <form onSubmit={mode === "open" ? saveOpen : (e) => e.preventDefault()} className="space-y-4">
       <Card className="grid gap-3 sm:grid-cols-3">
         <div className="sm:col-span-3">
           <Label>Title</Label>
-          <Input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="e.g. March 2026 order" required />
+          <Input
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+            placeholder="e.g. March 2026 order"
+            required={mode === "open"}
+          />
         </div>
         <div>
           <Label>Points budget</Label>
@@ -76,9 +104,22 @@ export function OrderForm({ items }: { items: PickerItem[] }) {
             </span>
           )}
         </p>
-        <Button type="submit" disabled={pending || lines.length === 0}>
-          {pending ? "Saving…" : "Create order"}
-        </Button>
+        <div className="flex gap-2">
+          {mode !== "open" && (
+            <Button type="button" variant="outline" disabled={pending} onClick={saveDraft}>
+              {pending ? "Saving…" : "Save draft"}
+            </Button>
+          )}
+          {mode === "open" ? (
+            <Button type="submit" disabled={pending || !canFinalize}>
+              {pending ? "Saving…" : "Save changes"}
+            </Button>
+          ) : (
+            <Button type="button" disabled={pending || !canFinalize} onClick={finalize}>
+              {pending ? "Saving…" : "Create final order"}
+            </Button>
+          )}
+        </div>
       </div>
     </form>
   );

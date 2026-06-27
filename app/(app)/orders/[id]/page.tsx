@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import { Card } from "@/components/ui";
 import { ReceiveForm, type ReceiveLine } from "@/components/receive-form";
@@ -11,6 +11,7 @@ export default async function OrderDetailPage({ params }: { params: Promise<{ id
   const { id } = await params;
   const { data: order } = await supabase.from("orders").select("*").eq("id", id).single();
   if (!order) notFound();
+  if (order.status === "draft") redirect(`/orders/${id}/edit`);
 
   const { data: rawLines } = await supabase
     .from("order_items")
@@ -28,9 +29,24 @@ export default async function OrderDetailPage({ params }: { params: Promise<{ id
       <Link href="/orders" className="text-sm text-muted-foreground hover:underline">← Orders</Link>
       <div className="flex items-center justify-between">
         <h1 className="text-xl font-semibold">{order.title}</h1>
-        <span className={received ? "text-[var(--success)]" : "text-muted-foreground"}>
-          {received ? "Received" : "Open"}
-        </span>
+        <div className="flex items-center gap-3">
+          {!received && order.status === "open" && (
+            <Link href={`/orders/${id}/edit`} className="text-sm text-pink hover:underline">
+              Edit order
+            </Link>
+          )}
+          <span
+            className={
+              received
+                ? "text-[var(--success)]"
+                : order.status === "draft"
+                  ? "text-yellow"
+                  : "text-muted-foreground"
+            }
+          >
+            {received ? "Received" : order.status === "draft" ? "Draft" : "Open"}
+          </span>
+        </div>
       </div>
 
       <Card className="flex flex-wrap gap-x-8 gap-y-1 text-sm">

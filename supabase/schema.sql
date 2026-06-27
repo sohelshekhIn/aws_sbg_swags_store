@@ -24,7 +24,7 @@ create table if not exists orders (
   title            text not null,
   points_budget    int  not null default 0,
   points_granted_on date,                       -- expiry = +30 days
-  status           text not null default 'open',-- 'open' | 'received'
+  status           text not null default 'open',-- 'draft' | 'open' | 'received'
   note             text,
   created_at       timestamptz not null default now()
 );

@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo } from "react";
+import { lineAvail, totalStock } from "@/lib/inventory";
 
 export type PickerItem = {
   id: string;
@@ -13,19 +14,20 @@ export type PickerItem = {
 
 export type PickerLine = { key: number; item_id: string; size: string; qty: number };
 
-/** Tap an item tile to add it; pick size with pills and qty with steppers below.
- *  Pass `stock` (item_id|size → qty) for giveaway mode availability. */
+/** Tap an item tile to add it; pick size with pills and qty with steppers below. */
 export function ItemPicker({
   items,
   lines,
   setLines,
   stock,
+  onOrder,
   mode = "order",
 }: {
   items: PickerItem[];
   lines: PickerLine[];
   setLines: React.Dispatch<React.SetStateAction<PickerLine[]>>;
   stock?: Record<string, number>;
+  onOrder?: Record<string, number>;
   mode?: "order" | "giveaway";
 }) {
   const byId = useMemo(() => new Map(items.map((i) => [i.id, i])), [items]);
@@ -46,13 +48,16 @@ export function ItemPicker({
   const availOf = (l: PickerLine) => {
     const it = byId.get(l.item_id);
     if (!it || !stock) return null;
-    return stock[`${it.id}|${it.has_sizes ? l.size : ""}`] ?? 0;
+    return lineAvail(it, l.size, stock);
   };
-  const stockOf = (it: PickerItem) => {
+  const stockLabel = (it: PickerItem) => {
     if (!stock) return null;
-    if (it.has_sizes && it.sizes?.length)
-      return it.sizes.reduce((s, sz) => s + (stock[`${it.id}|${sz}`] ?? 0), 0);
-    return stock[`${it.id}|`] ?? 0;
+    const n = totalStock(it, stock);
+    const ordered = onOrder ? totalStock(it, onOrder) : 0;
+    if (ordered > 0 && onOrder) {
+      return n > 0 ? `${n} in stock · ${ordered} on order` : `${ordered} on order`;
+    }
+    return `${n} in stock`;
   };
 
   return (
@@ -82,10 +87,18 @@ export function ItemPicker({
               <div className="line-clamp-2 text-xs leading-tight">{it.name}</div>
               {showStock ? (
                 (() => {
-                  const n = stockOf(it) ?? 0;
+                  const label = stockLabel(it) ?? "0 in stock";
+                  const n = totalStock(it, stock!);
+                  const ordered = onOrder ? totalStock(it, onOrder) : 0;
+                  const ok = n > 0;
+                  const pending = !ok && ordered > 0;
                   return (
-                    <div className={`mt-0.5 text-xs font-semibold ${n <= 0 ? "text-destructive" : "text-success"}`}>
-                      {n} in stock
+                    <div
+                      className={`mt-0.5 text-xs font-semibold ${
+                        ok ? "text-success" : pending ? "text-yellow" : "text-destructive"
+                      }`}
+                    >
+                      {label}
                     </div>
                   );
                 })()

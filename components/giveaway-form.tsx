@@ -53,7 +53,11 @@ export function GiveawayForm({
         </div>
       </Card>
 
-      <ItemPicker items={items} lines={lines} setLines={setLines} stock={stock} mode="giveaway" />
+      {items.length === 0 ? (
+        <p className="text-sm text-muted-foreground">Nothing in stock to give out right now.</p>
+      ) : (
+        <ItemPicker items={items} lines={lines} setLines={setLines} stock={stock} mode="giveaway" />
+      )}
 
       <div className="sticky bottom-0 -mx-4 flex items-center justify-between border-t border-border bg-background/95 px-4 py-3 backdrop-blur">
         <p className="text-sm text-muted-foreground">

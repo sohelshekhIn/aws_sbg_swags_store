@@ -23,6 +23,7 @@ from (values
   ('KIRO Holographic Sticker',     1, false, null,             '/items/kiro-holographic-sticker.png'),
   ('KIRO Ghost Sticker',           1, false, null,             '/items/kiro-ghost-sticker.png'),
   ('AWS Sticker',                  1, false, null,             '/items/aws-sticker.png'),
-  ('Core Team Kit',                1, false, null,             '/items/core-team-kit.png')
+  ('Core Team Kit',                1, false, null,             '/items/core-team-kit.png'),
+  ('Leader Kit',                   1, false, null,             null)
 ) as v(name, points, has_sizes, sizes, image_url)
 where not exists (select 1 from items where items.name = v.name);

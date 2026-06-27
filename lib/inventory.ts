@@ -50,3 +50,53 @@ export function itemsAvailable<T extends StockedItem>(
 }
 
 export type StockView = "stock" | "all";
+
+export function orderPointsTotal(
+  lines: { item_id: string; qty: number }[],
+  pointsById: Map<string, number> | Record<string, number>
+): number {
+  const pts = (id: string) => (pointsById instanceof Map ? pointsById.get(id) : pointsById[id]) ?? 0;
+  return lines.reduce((s, l) => s + pts(l.item_id) * l.qty, 0);
+}
+
+/** Max qty for one line without exceeding per-line stock (giveaway). */
+export function maxLineQty(
+  item: StockedItem,
+  size: string,
+  stock: Map<string, number> | Record<string, number>
+): number {
+  return Math.max(0, lineAvail(item, size, stock));
+}
+
+/** Qty already on other lines for this item (optionally excluding one line). */
+export function itemQtyOnLines(
+  itemId: string,
+  lines: { key?: number; item_id: string; qty: number }[],
+  excludeKey?: number
+): number {
+  return lines
+    .filter((l) => l.item_id === itemId && (excludeKey === undefined || l.key !== excludeKey))
+    .reduce((s, l) => s + l.qty, 0);
+}
+
+/** Max qty for one giveaway line — caps by total item stock shared across sizes/lines. */
+export function maxGiveawayLineQty(
+  item: StockedItem,
+  size: string,
+  stock: Map<string, number> | Record<string, number>,
+  lines: { key?: number; item_id: string; qty: number }[],
+  lineKey?: number
+): number {
+  const room = totalStock(item, stock) - itemQtyOnLines(item.id, lines, lineKey);
+  if (room <= 0) return 0;
+  return Math.min(room, maxLineQty(item, size, stock));
+}
+
+/** Size-specific bucket qty only (for display). */
+export function sizeBucketQty(
+  item: StockedItem,
+  size: string,
+  stock: Map<string, number> | Record<string, number>
+): number {
+  return qty(stock, stockKey(item.id, size || null));
+}

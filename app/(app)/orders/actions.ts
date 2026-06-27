@@ -2,6 +2,8 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
+import { lineAvail, orderPointsTotal } from "@/lib/inventory";
+import { getStockMap, stockKey } from "@/lib/stock";
 import { supabase } from "@/lib/supabase";
 
 export type OrderLineInput = { item_id: string; size: string | null; qty: number };
@@ -35,8 +37,18 @@ function header(input: OrderInput, title: string) {
   };
 }
 
+async function assertWithinBudget(lines: OrderLineInput[], budget: number) {
+  const ids = [...new Set(lines.filter((l) => l.qty > 0).map((l) => l.item_id))];
+  if (ids.length === 0) return;
+  const { data: items } = await supabase.from("items").select("id, points").in("id", ids);
+  const points = new Map((items ?? []).map((i) => [i.id, i.points]));
+  const total = orderPointsTotal(lines, points);
+  if (total > budget) throw new Error(`Order exceeds budget by ${total - budget} points`);
+}
+
 /** Save work-in-progress without submitting the order. */
 export async function saveOrderDraft(id: string | null, input: OrderInput) {
+  await assertWithinBudget(input.lines, input.points_budget);
   const title = input.title.trim() || "Untitled draft";
   let orderId = id;
 
@@ -66,6 +78,7 @@ export async function saveOrderDraft(id: string | null, input: OrderInput) {
 export async function finalizeOrder(id: string | null, input: OrderInput) {
   if (!input.title.trim()) throw new Error("Title is required");
   if (!input.lines.some((l) => l.item_id && l.qty > 0)) throw new Error("Add at least one item");
+  await assertWithinBudget(input.lines, input.points_budget);
 
   const title = input.title.trim();
   let orderId = id;
@@ -97,6 +110,7 @@ export async function updateOrder(id: string, input: OrderInput) {
 
   if (!input.title.trim()) throw new Error("Title is required");
   if (!input.lines.some((l) => l.item_id && l.qty > 0)) throw new Error("Add at least one item");
+  await assertWithinBudget(input.lines, input.points_budget);
 
   await supabase.from("orders").update(header(input, input.title.trim())).eq("id", id);
   await replaceLines(id, input.lines);

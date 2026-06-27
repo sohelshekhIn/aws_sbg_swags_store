@@ -4,7 +4,7 @@ import { stockKey } from "./inventory";
 
 export type StockRow = { item_id: string; size: string | null; qty: number };
 
-export { stockKey, totalStock, itemsInStock, itemsAvailable, lineAvail } from "./inventory";
+export { stockKey, totalStock, itemsInStock, itemsAvailable, lineAvail, orderPointsTotal, maxLineQty } from "./inventory";
 export type { StockedItem, StockView } from "./inventory";
 
 function addQty(map: Map<string, number>, itemId: string, size: string | null, n: number) {

@@ -64,7 +64,7 @@ export function OrderForm({
     startTransition(() => updateOrder(orderId, payload()));
   }
 
-  const canFinalize = Boolean(title.trim() && lines.length > 0);
+  const canFinalize = Boolean(title.trim() && lines.length > 0 && !over);
 
   return (
     <form onSubmit={mode === "open" ? saveOpen : (e) => e.preventDefault()} className="space-y-4">
@@ -93,7 +93,7 @@ export function OrderForm({
         {expiry && <p className="text-xs text-muted-foreground sm:col-span-3">Points expire on {expiry} (30 days).</p>}
       </Card>
 
-      <ItemPicker items={items} lines={lines} setLines={setLines} />
+      <ItemPicker items={items} lines={lines} setLines={setLines} budget={budget} />
 
       <div className="sticky bottom-0 -mx-4 flex items-center justify-between border-t border-border bg-background/95 px-4 py-3 backdrop-blur">
         <p className={`text-sm ${over ? "font-semibold text-destructive" : ""}`}>
@@ -106,7 +106,7 @@ export function OrderForm({
         </p>
         <div className="flex gap-2">
           {mode !== "open" && (
-            <Button type="button" variant="outline" disabled={pending} onClick={saveDraft}>
+            <Button type="button" variant="outline" disabled={pending || over} onClick={saveDraft}>
               {pending ? "Saving…" : "Save draft"}
             </Button>
           )}

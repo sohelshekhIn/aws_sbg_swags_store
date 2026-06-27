@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { supabase } from "@/lib/supabase";
 import { Button } from "@/components/ui";
-import { fmtDate } from "@/lib/utils";
+import { GiveawayList, type GiveawayRow } from "@/components/giveaway-list";
 
 export const dynamic = "force-dynamic";
 
@@ -20,7 +20,13 @@ export default async function GiveawaysPage() {
     byGiveaway.set(r.giveaway_id, [...(byGiveaway.get(r.giveaway_id) ?? []), chip]);
   }
 
-  const list = (gs ?? []) as Giveaway[];
+  const giveaways: GiveawayRow[] = ((gs ?? []) as Giveaway[]).map((g) => ({
+    id: g.id,
+    recipient: g.recipient,
+    note: g.note,
+    created_at: g.created_at,
+    items: byGiveaway.get(g.id) ?? [],
+  }));
 
   return (
     <div className="space-y-4">
@@ -29,39 +35,7 @@ export default async function GiveawaysPage() {
         <Link href="/giveaways/new"><Button>Give out</Button></Link>
       </div>
 
-      {list.length === 0 ? (
-        <p className="text-sm text-muted-foreground">Nothing given out yet.</p>
-      ) : (
-        <div className="space-y-2">
-          {list.map((g) => (
-            <div key={g.id} className="rounded-lg border border-border bg-card p-3 text-sm">
-              <div className="flex justify-between gap-2">
-                <span className="font-semibold">{g.recipient}</span>
-                <div className="flex shrink-0 items-center gap-2">
-                  <Link href={`/giveaways/${g.id}/edit`} className="text-xs text-pink hover:underline">
-                    Edit
-                  </Link>
-                  <span className="text-muted-foreground">{fmtDate(g.created_at)}</span>
-                </div>
-              </div>
-              <div className="mt-2 flex flex-wrap gap-1.5">
-                {(byGiveaway.get(g.id) ?? []).map((c, i) => (
-                  <span key={i} className="inline-flex items-center gap-1.5 rounded-full border border-border bg-muted py-0.5 pl-0.5 pr-2 text-xs">
-                    {c.image_url ? (
-                      <img src={c.image_url} alt="" className="item-img h-5 w-5 rounded-full" />
-                    ) : (
-                      <span className="h-5 w-5 rounded-full bg-background" />
-                    )}
-                    <span className="font-semibold text-pink">{c.qty}×</span> {c.name}
-                    {c.size ? ` (${c.size})` : ""}
-                  </span>
-                ))}
-              </div>
-              {g.note && <p className="mt-1.5 text-xs text-muted-foreground">{g.note}</p>}
-            </div>
-          ))}
-        </div>
-      )}
+      <GiveawayList giveaways={giveaways} />
     </div>
   );
 }

@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { supabase, type Item } from "@/lib/supabase";
-import { getStockMap, stockKey } from "@/lib/stock";
+import { getStockMap, itemsInStock, stockKey, totalStock } from "@/lib/stock";
 import { Button, Pill } from "@/components/ui";
 
 export const dynamic = "force-dynamic";
@@ -22,14 +22,8 @@ const chip = {
 export default async function StockPage() {
   const { data: items } = await supabase.from("items").select("*").eq("active", true).order("points", { ascending: false });
   const stock = await getStockMap();
-
-  const list = (items ?? []) as Item[];
-  const totalUnits = (size: Item) => {
-    if (size.has_sizes && size.sizes?.length)
-      return size.sizes.reduce((s, sz) => s + (stock.get(stockKey(size.id, sz)) ?? 0), 0);
-    return stock.get(stockKey(size.id, null)) ?? 0;
-  };
-  const outCount = list.filter((i) => totalUnits(i) <= 0).length;
+  const all = (items ?? []) as Item[];
+  const list = itemsInStock(all, stock);
 
   return (
     <div className="space-y-5">
@@ -37,7 +31,10 @@ export default async function StockPage() {
         <div>
           <h1 className="text-2xl font-bold">Current stock</h1>
           <p className="text-sm text-muted-foreground">
-            {list.length} items · <span className="text-destructive">{outCount} out of stock</span>
+            {list.length} in stock
+            {all.length > list.length && (
+              <span> · {all.length - list.length} out of stock hidden</span>
+            )}
           </p>
         </div>
         <div className="flex gap-2">
@@ -48,13 +45,20 @@ export default async function StockPage() {
 
       {list.length === 0 ? (
         <p className="text-sm text-muted-foreground">
-          No items yet. Add some on the <Link className="text-pink underline" href="/items">Items</Link> page.
+          {all.length === 0 ? (
+            <>
+              No items yet. Add some on the <Link className="text-pink underline" href="/items">Items</Link> page.
+            </>
+          ) : (
+            "Nothing in stock right now."
+          )}
         </p>
       ) : (
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
           {list.map((item) => {
             const sized = item.has_sizes && item.sizes?.length;
-            const total = totalUnits(item);
+            const total = totalStock(item, stock);
+            const sizes = sized ? item.sizes!.filter((sz) => (stock.get(stockKey(item.id, sz)) ?? 0) > 0) : [];
             return (
               <div key={item.id} className="flex flex-col rounded-lg border border-border bg-card p-2.5">
                 <div className="mb-2 aspect-square overflow-hidden rounded-md">
@@ -72,7 +76,7 @@ export default async function StockPage() {
                 <div className="mt-2">
                   {sized ? (
                     <div className="flex flex-wrap gap-1">
-                      {item.sizes!.map((sz) => {
+                      {sizes.map((sz) => {
                         const q = stock.get(stockKey(item.id, sz)) ?? 0;
                         return (
                           <span key={sz} className={`rounded border px-1.5 py-0.5 text-[11px] ${chip[level(q)]}`}>

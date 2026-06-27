@@ -15,3 +15,26 @@ export async function getStockMap(): Promise<Map<string, number>> {
   }
   return map;
 }
+
+type StockedItem = { id: string; has_sizes: boolean; sizes: string[] | null };
+
+function qty(stock: Map<string, number> | Record<string, number>, key: string) {
+  return stock instanceof Map ? (stock.get(key) ?? 0) : (stock[key] ?? 0);
+}
+
+/** Total units in stock for an item (sums sizes when applicable). */
+export function totalStock(item: StockedItem, stock: Map<string, number> | Record<string, number>): number {
+  if (item.has_sizes && item.sizes?.length)
+    return item.sizes.reduce((s, sz) => s + qty(stock, stockKey(item.id, sz)), 0);
+  return qty(stock, stockKey(item.id, null));
+}
+
+/** Active items with stock, plus any ids already on a giveaway being edited. */
+export function itemsInStock<T extends StockedItem>(
+  items: T[],
+  stock: Map<string, number> | Record<string, number>,
+  alsoInclude: string[] = []
+): T[] {
+  const keep = new Set(alsoInclude);
+  return items.filter((item) => keep.has(item.id) || totalStock(item, stock) > 0);
+}

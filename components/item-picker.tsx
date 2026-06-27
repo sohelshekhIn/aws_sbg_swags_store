@@ -14,19 +14,22 @@ export type PickerItem = {
 export type PickerLine = { key: number; item_id: string; size: string; qty: number };
 
 /** Tap an item tile to add it; pick size with pills and qty with steppers below.
- *  Pass `stock` (item_id|size → qty) to show availability and flag shortfalls. */
+ *  Pass `stock` (item_id|size → qty) for giveaway mode availability. */
 export function ItemPicker({
   items,
   lines,
   setLines,
   stock,
+  mode = "order",
 }: {
   items: PickerItem[];
   lines: PickerLine[];
   setLines: React.Dispatch<React.SetStateAction<PickerLine[]>>;
   stock?: Record<string, number>;
+  mode?: "order" | "giveaway";
 }) {
   const byId = useMemo(() => new Map(items.map((i) => [i.id, i])), [items]);
+  const showStock = mode === "giveaway" && stock;
 
   function addItem(it: PickerItem) {
     setLines((ls) => {
@@ -44,6 +47,12 @@ export function ItemPicker({
     const it = byId.get(l.item_id);
     if (!it || !stock) return null;
     return stock[`${it.id}|${it.has_sizes ? l.size : ""}`] ?? 0;
+  };
+  const stockOf = (it: PickerItem) => {
+    if (!stock) return null;
+    if (it.has_sizes && it.sizes?.length)
+      return it.sizes.reduce((s, sz) => s + (stock[`${it.id}|${sz}`] ?? 0), 0);
+    return stock[`${it.id}|`] ?? 0;
   };
 
   return (
@@ -71,7 +80,18 @@ export function ItemPicker({
                 )}
               </div>
               <div className="line-clamp-2 text-xs leading-tight">{it.name}</div>
-              <div className="mt-0.5 text-xs font-semibold text-yellow">{it.points} pts</div>
+              {showStock ? (
+                (() => {
+                  const n = stockOf(it) ?? 0;
+                  return (
+                    <div className={`mt-0.5 text-xs font-semibold ${n <= 0 ? "text-destructive" : "text-success"}`}>
+                      {n} in stock
+                    </div>
+                  );
+                })()
+              ) : (
+                <div className="mt-0.5 text-xs font-semibold text-yellow">{it.points} pts</div>
+              )}
             </button>
           );
         })}

@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { supabase } from "@/lib/supabase";
-import { getStockMap, stockKey } from "@/lib/stock";
+import { getStockMap, itemsInStock, stockKey } from "@/lib/stock";
 import { GiveawayForm } from "@/components/giveaway-form";
 import type { ItemLite } from "@/components/order-form";
 import type { PickerLine } from "@/components/item-picker";
@@ -27,13 +27,15 @@ export default async function EditGiveawayPage({ params }: { params: Promise<{ i
     .from("items")
     .select("id,name,points,has_sizes,sizes,image_url")
     .or(itemFilter)
-    .order("points", { ascending: false });
+    .order("name");
 
   const stock = Object.fromEntries(await getStockMap());
   for (const l of existingLines ?? []) {
     const key = stockKey(l.item_id, l.size);
     stock[key] = (stock[key] ?? 0) + l.qty;
   }
+
+  const inStock = itemsInStock((items ?? []) as ItemLite[], stock, existingItemIds);
 
   const initialLines: PickerLine[] = (existingLines ?? []).map((l, i) => ({
     key: i,
@@ -52,7 +54,7 @@ export default async function EditGiveawayPage({ params }: { params: Promise<{ i
         Add extra items or adjust quantities, then save.
       </p>
       <GiveawayForm
-        items={(items ?? []) as ItemLite[]}
+        items={inStock}
         stock={stock}
         giveawayId={id}
         initial={{
